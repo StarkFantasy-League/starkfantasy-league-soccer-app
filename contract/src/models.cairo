@@ -284,3 +284,82 @@ mod tests {
         assert(team.formation == 44444, 'formation mismatch');
     }
 }
+
+#[derive(Copy, Drop, Serde, PartialEq)]
+#[dojo::model]
+pub struct Tournament {
+    id: u64,
+    name: felt252,
+    description: felt252,
+    entry_fee: u256,
+    start_timestamp: u64,
+    end_timestamp: u64,
+    status: u8, // 1-upcoming, 2-active, 3-finished
+    max_teams_per_user: u8,
+    max_players_per_team: u8,
+    budget_limit: u32,
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use dojo::test_utils::{spawn_test_state, TestState};
+    use dojo::types::{felt252, u256};
+
+    #[test]
+    fn test_tournament_initialization() {
+        let mut state: TestState = spawn_test_state();
+
+        let tournament = Tournament {
+            id: 1,
+            name: felt252::from("World Cup"),
+            description: felt252::from("Fantasy World Cup 2025"),
+            entry_fee: u256::from_u64(500),
+            start_timestamp: 1700000000,
+            end_timestamp: 1701000000,
+            status: 1,
+            max_teams_per_user: 3,
+            max_players_per_team: 11,
+            budget_limit: 1000,
+        };
+
+        // Store the tournament
+        Tournament::set(&mut state, 1, tournament);
+
+        // Retrieve and assert
+        let loaded = Tournament::get(&state, 1);
+        assert(loaded.id == 1, 'Invalid ID');
+        assert(loaded.name == felt252::from("World Cup"), 'Invalid name');
+        assert(loaded.entry_fee == u256::from_u64(500), 'Invalid entry fee');
+        assert(loaded.status == 1, 'Invalid status');
+        assert(loaded.max_teams_per_user == 3, 'Invalid max teams');
+    }
+
+    #[test]
+    fn test_tournament_status_change() {
+        let mut state = spawn_test_state();
+
+        let mut tournament = Tournament {
+            id: 2,
+            name: felt252::from("Champions League"),
+            description: felt252::from("Fantasy UCL"),
+            entry_fee: u256::from_u64(1000),
+            start_timestamp: 1800000000,
+            end_timestamp: 1801000000,
+            status: 1,
+            max_teams_per_user: 2,
+            max_players_per_team: 11,
+            budget_limit: 1200,
+        };
+
+        Tournament::set(&mut state, 2, tournament);
+
+        // Change status to active
+        tournament.status = 2;
+        Tournament::set(&mut state, 2, tournament);
+
+        let updated = Tournament::get(&state, 2);
+        assert(updated.status == 2, 'Status update failed');
+    }
+}
